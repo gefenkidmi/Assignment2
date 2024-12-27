@@ -12,15 +12,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const supertest_1 = __importDefault(require("supertest"));
 const server_1 = __importDefault(require("../server"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const post_model_1 = __importDefault(require("../models/post_model"));
-const supertest_1 = __importDefault(require("supertest"));
-let app;
+const users_model_1 = __importDefault(require("../models/users_model"));
+var app;
+const testUser = {
+    email: "test@user.com",
+    password: "testpassword",
+};
 beforeAll(() => __awaiter(void 0, void 0, void 0, function* () {
     console.log("beforeAll");
     app = yield (0, server_1.default)();
     yield post_model_1.default.deleteMany();
+    yield users_model_1.default.deleteMany();
+    yield (0, supertest_1.default)(app).post("/auth/register").send(testUser);
+    const res = yield (0, supertest_1.default)(app).post("/auth/login").send(testUser);
+    testUser.token = res.body.token;
+    testUser._id = res.body._id;
+    expect(testUser.token).toBeDefined();
 }));
 afterAll((done) => {
     console.log("afterAll");
@@ -35,7 +46,9 @@ describe("Posts Tests", () => {
         expect(response.body.length).toBe(0);
     }));
     test("Test Create Post", () => __awaiter(void 0, void 0, void 0, function* () {
-        const response = yield (0, supertest_1.default)(app).post("/posts")
+        const response = yield (0, supertest_1.default)(app)
+            .post("/posts")
+            .set({ authorization: "JWT " + testUser.token })
             .send({
             title: "Test Post",
             content: "Test Content",
@@ -47,7 +60,7 @@ describe("Posts Tests", () => {
         postId = response.body._id;
     }));
     test("Test get post by owner", () => __awaiter(void 0, void 0, void 0, function* () {
-        const response = yield (0, supertest_1.default)(app).get("/posts?owner=TestOwner");
+        const response = yield (0, supertest_1.default)(app).get("/posts?owner=" + testUser._id);
         expect(response.statusCode).toBe(200);
         expect(response.body.length).toBe(1);
         expect(response.body[0].title).toBe("Test Post");
@@ -60,7 +73,9 @@ describe("Posts Tests", () => {
         expect(response.body.content).toBe("Test Content");
     }));
     test("Test Create Post 2", () => __awaiter(void 0, void 0, void 0, function* () {
-        const response = yield (0, supertest_1.default)(app).post("/posts")
+        const response = yield (0, supertest_1.default)(app)
+            .post("/posts")
+            .set({ authorization: "JWT " + testUser.token })
             .send({
             title: "Test Post 2",
             content: "Test Content 2",
@@ -74,13 +89,17 @@ describe("Posts Tests", () => {
         expect(response.body.length).toBe(2);
     }));
     test("Test Delete Post", () => __awaiter(void 0, void 0, void 0, function* () {
-        const response = yield (0, supertest_1.default)(app).delete("/posts/" + postId);
+        const response = yield (0, supertest_1.default)(app)
+            .delete("/posts/" + postId)
+            .set({ authorization: "JWT " + testUser.token });
         expect(response.statusCode).toBe(200);
         const response2 = yield (0, supertest_1.default)(app).get("/posts/" + postId);
         expect(response2.statusCode).toBe(404);
     }));
     test("Test Create Post fail", () => __awaiter(void 0, void 0, void 0, function* () {
-        const response = yield (0, supertest_1.default)(app).post("/posts")
+        const response = yield (0, supertest_1.default)(app)
+            .post("/posts")
+            .set({ authorization: "JWT " + testUser.token })
             .send({
             content: "Test Content 2",
         });

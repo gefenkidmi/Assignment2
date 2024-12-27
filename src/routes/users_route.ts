@@ -2,12 +2,12 @@ import express from "express";
 const router = express.Router();
 import usersController from "../controllers/users_controller";
 
-router.get("/", usersController.getAll.bind(usersController));
+router.post("/register", usersController.register);
 
-router.get("/:id", usersController.getById.bind(usersController));
+router.post("/login", usersController.login);
 
-router.post("/", usersController.createItem.bind(usersController));
+router.post("/refresh", usersController.refresh);
 
-router.delete("/:id", usersController.deleteItem.bind(usersController));
+router.post("/logout", usersController.logout);
 
 export default router;

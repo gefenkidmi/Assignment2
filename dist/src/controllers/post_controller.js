@@ -13,78 +13,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const post_model_1 = __importDefault(require("../models/post_model"));
-const getAllPosts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const filter = req.query.owner;
-    try {
-        if (filter) {
-            const posts = yield post_model_1.default.find({ owner: filter });
-            res.send(posts);
-        }
-        else {
-            const posts = yield post_model_1.default.find();
-            res.send(posts);
-        }
+const base_controller_1 = __importDefault(require("./base_controller"));
+class PostsController extends base_controller_1.default {
+    constructor() {
+        super(post_model_1.default);
     }
-    catch (error) {
-        res.status(400).send(error);
+    create(req, res) {
+        const _super = Object.create(null, {
+            createItem: { get: () => super.createItem }
+        });
+        return __awaiter(this, void 0, void 0, function* () {
+            const userId = req.params.userId;
+            const post = Object.assign(Object.assign({}, req.body), { owner: userId });
+            req.body = post;
+            _super.createItem.call(this, req, res);
+        });
     }
-});
-const getPostById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const postId = req.params.id;
-    try {
-        const post = yield post_model_1.default.findById(postId);
-        if (post != null) {
-            res.send(post);
-        }
-        else {
-            res.status(404).send("Post not found");
-        }
-    }
-    catch (error) {
-        res.status(400).send(error);
-    }
-});
-const createPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const postBody = req.body;
-    try {
-        const post = yield post_model_1.default.create(postBody);
-        res.status(201).send(post);
-    }
-    catch (error) {
-        res.status(400).send(error);
-    }
-});
-const deletePost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const postId = req.params.id;
-    try {
-        const post = yield post_model_1.default.findByIdAndDelete(postId);
-        res.status(200).send(post);
-    }
-    catch (error) {
-        res.status(400).send(error);
-    }
-});
-const updatePost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const postId = req.params.id;
-    const { content } = req.body;
-    try {
-        const updatedPost = yield post_model_1.default.findByIdAndUpdate(postId, { content }, { new: true, runValidators: true });
-        if (updatedPost) {
-            res.send(updatedPost);
-        }
-        else {
-            res.status(404).send("Post not found");
-        }
-    }
-    catch (error) {
-        res.status(400).send(error);
-    }
-});
-exports.default = {
-    getAllPosts,
-    createPost,
-    updatePost,
-    deletePost,
-    getPostById,
-};
+}
+exports.default = new PostsController();
 //# sourceMappingURL=post_controller.js.map

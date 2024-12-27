@@ -7,6 +7,7 @@ class BaseController<T> {
   constructor(model: Model<T>) {
     this.model = model;
   }
+
   async getAll(req: Request, res: Response) {
     const filter = req.query.owner;
     try {

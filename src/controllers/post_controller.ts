@@ -1,6 +1,21 @@
 import postModel, { IPost } from "../models/post_model";
+import { Request, Response } from "express";
 import BaseController from "./base_controller";
 
-const postController = new BaseController<IPost>(postModel);
+class PostsController extends BaseController<IPost> {
+  constructor() {
+    super(postModel);
+  }
 
-export default postController;
+  async create(req: Request, res: Response) {
+    const userId = req.params.userId;
+    const post = {
+      ...req.body,
+      owner: userId,
+    };
+    req.body = post;
+    super.createItem(req, res);
+  }
+}
+
+export default new PostsController();
