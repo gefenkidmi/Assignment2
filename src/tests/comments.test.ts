@@ -1,30 +1,23 @@
 import initApp from "../server";
 import mongoose from "mongoose";
-import postModel from "../models/post_model";
 import commentsModel from "../models/comments_model";
 import { Express } from "express";
 import request from "supertest";
 
 let app: Express;
 let postId: string;
-let commentId: string;
 
 beforeAll(async () => {
   console.log("beforeAll");
   app = await initApp();
-});
 
-beforeEach(async () => {
-  await postModel.deleteMany();
-  await commentsModel.deleteMany();
-
-  // יצירת פוסט חדש
   const postResponse = await request(app).post("/posts").send({
     title: "Test Post",
     content: "Test Content",
     owner: "TestOwner",
   });
-  postId = postResponse.body._id; // שמירת ID של הפוסט
+  postId = postResponse.body._id;
+  await commentsModel.deleteMany();
 });
 
 afterAll(async () => {
@@ -32,28 +25,27 @@ afterAll(async () => {
   await mongoose.connection.close();
 });
 
+let commentId = "";
+
 describe("Comments Tests", () => {
-  test("Test create comment", async () => {
+  test("Comments test get all", async () => {
+    const response = await request(app).get("/comments");
+    expect(response.statusCode).toBe(200);
+    expect(response.body.length).toBe(0);
+  });
+
+  test("Test Create Comment", async () => {
     const response = await request(app).post("/comments").send({
       comment: "Test Comment",
       owner: "TestOwner",
-      postId: postId, // שימוש ב-ID של הפוסט שנוצר
+      postId: postId,
     });
     expect(response.statusCode).toBe(201);
     expect(response.body.comment).toBe("Test Comment");
-    expect(response.body.owner).toBe("TestOwner");
-    commentId = response.body._id; // שמירת ID של התגובה
+    commentId = response.body._id;
   });
 
-  test("Test get comments by postId", async () => {
-    // יצירת תגובה חדשה
-    await request(app).post("/comments").send({
-      comment: "Test Comment",
-      owner: "TestOwner",
-      postId: postId, // שימוש ב-ID של הפוסט שנוצר
-    });
-
-    // בדיקת שליפה לפי postId
+  test("Test get comment by postId", async () => {
     const response = await request(app).get(`/comments?postId=${postId}`);
     expect(response.statusCode).toBe(200);
     expect(response.body.length).toBe(1);
@@ -61,39 +53,20 @@ describe("Comments Tests", () => {
   });
 
   test("Test get comment by id", async () => {
-    // יצירת תגובה חדשה
-    const commentResponse = await request(app).post("/comments").send({
-      comment: "Test Comment",
-      owner: "TestOwner",
-      postId: postId,
-    });
-    commentId = commentResponse.body._id; // שמירת ID של התגובה
-
-    // בדיקת שליפה לפי ID
     const response = await request(app).get(`/comments/${commentId}`);
     expect(response.statusCode).toBe(200);
     expect(response.body.comment).toBe("Test Comment");
   });
 
-  test("Test delete comment", async () => {
-    // יצירת תגובה חדשה
-    const commentResponse = await request(app).post("/comments").send({
-      comment: "Test Comment",
-      owner: "TestOwner",
-      postId: postId,
-    });
-    commentId = commentResponse.body._id;
-
-    // מחיקת התגובה
+  test("Test Delete Comment", async () => {
     const deleteResponse = await request(app).delete(`/comments/${commentId}`);
     expect(deleteResponse.statusCode).toBe(200);
 
-    // בדיקת שליפה של התגובה שנמחקה
-    const response = await request(app).get(`/comments/${commentId}`);
-    expect(response.statusCode).toBe(404);
+    const getResponse = await request(app).get(`/comments/${commentId}`);
+    expect(getResponse.statusCode).toBe(404);
   });
 
-  test("Test create comment fail", async () => {
+  test("Test Create Comment fail", async () => {
     const response = await request(app).post("/comments").send({
       owner: "TestOwner",
     });

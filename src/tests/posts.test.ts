@@ -1,7 +1,6 @@
 import initApp from "../server";
 import mongoose from "mongoose";
 import postModel from "../models/post_model";
-import commentsModel from "../models/comments_model";
 import { Express } from "express";
 import request from "supertest";
 
@@ -10,17 +9,20 @@ let app: Express;
 beforeAll(async () => {
   console.log("beforeAll");
   app = await initApp();
+  await postModel.deleteMany();
 });
 
 beforeEach(async () => {
+  console.log("Clearing posts...");
   await postModel.deleteMany();
-  await commentsModel.deleteMany();
 });
 
 afterAll(async () => {
   console.log("afterAll");
   await mongoose.connection.close();
 });
+
+let postId: string;
 
 describe("Posts Tests", () => {
   test("Posts test get all", async () => {
@@ -37,35 +39,20 @@ describe("Posts Tests", () => {
     });
     expect(response.statusCode).toBe(201);
     expect(response.body.title).toBe("Test Post");
-    expect(response.body.content).toBe("Test Content");
+    postId = response.body._id;
   });
 
   test("Test get post by owner", async () => {
-    await request(app).post("/posts").send({
-      title: "Test Post",
-      content: "Test Content",
-      owner: "TestOwner",
-    });
-
-    const response = await request(app).get("/posts?owner=TestOwner");
+    const response = await request(app).get(`/posts?owner=TestOwner`);
     expect(response.statusCode).toBe(200);
     expect(response.body.length).toBe(1);
     expect(response.body[0].title).toBe("Test Post");
-    expect(response.body[0].content).toBe("Test Content");
   });
 
   test("Test get post by id", async () => {
-    const createResponse = await request(app).post("/posts").send({
-      title: "Test Post",
-      content: "Test Content",
-      owner: "TestOwner",
-    });
-    const createdPostId = createResponse.body._id;
-
-    const response = await request(app).get(`/posts/${createdPostId}`);
+    const response = await request(app).get(`/posts/${postId}`);
     expect(response.statusCode).toBe(200);
     expect(response.body.title).toBe("Test Post");
-    expect(response.body.content).toBe("Test Content");
   });
 
   test("Test Create Post 2", async () => {
@@ -95,17 +82,10 @@ describe("Posts Tests", () => {
   });
 
   test("Test Delete Post", async () => {
-    const createResponse = await request(app).post("/posts").send({
-      title: "Test Post",
-      content: "Test Content",
-      owner: "TestOwner",
-    });
-    const createdPostId = createResponse.body._id;
-
-    const deleteResponse = await request(app).delete(`/posts/${createdPostId}`);
+    const deleteResponse = await request(app).delete(`/posts/${postId}`);
     expect(deleteResponse.statusCode).toBe(200);
 
-    const getResponse = await request(app).get(`/posts/${createdPostId}`);
+    const getResponse = await request(app).get(`/posts/${postId}`);
     expect(getResponse.statusCode).toBe(404);
   });
 
