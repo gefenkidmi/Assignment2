@@ -14,20 +14,24 @@ const testUser: User = {
 };
 
 beforeAll(async () => {
-  console.log("beforeAll");
   app = await initApp();
-  await postModel.deleteMany();
 
+  await postModel.deleteMany();
   await userModel.deleteMany();
-  await request(app).post("/auth/register").send(testUser);
+
+  const registerResponse = await request(app)
+    .post("/auth/register")
+    .send(testUser);
+
   const res = await request(app).post("/auth/login").send(testUser);
-  testUser.token = res.body.token;
+
+  testUser.token = res.body.accessToken;
   testUser._id = res.body._id;
+
   expect(testUser.token).toBeDefined();
 });
 
 afterAll((done) => {
-  console.log("afterAll");
   mongoose.connection.close();
   done();
 });
@@ -93,6 +97,7 @@ describe("Posts Tests", () => {
       .delete("/posts/" + postId)
       .set({ authorization: "JWT " + testUser.token });
     expect(response.statusCode).toBe(200);
+
     const response2 = await request(app).get("/posts/" + postId);
     expect(response2.statusCode).toBe(404);
   });
